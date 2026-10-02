@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Код-Детектив: операция «Вложенный IF»</title>
+<link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🕵️</text></svg>'>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Rubik:wght@400;500;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg1:#0d1830; --bg2:#122447; --card:#111f3b; --card2:#0e1a33;
+  --line:#2a3f68; --ink:#e8f0ff; --dim:#8ea3c9;
+  --yel:#ffd23f; --red:#ff6b6b; --mint:#3ddc97; --sky:#4cc9f0; --org:#ffa657;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  font-family:'Rubik',sans-serif; color:var(--ink); min-height:100vh; padding-bottom:90px;
+  background:
+    radial-gradient(1100px 500px at 85% -10%, rgba(76,201,240,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255,210,63,.07), transparent 60%),
+    linear-gradient(160deg,var(--bg1),var(--bg2) 55%,#0b1426);
+  background-attachment:fixed;
+}
+body::before{ /* чертёжная сетка */
+  content:""; position:fixed; inset:0; z-index:0; pointer-events:none;
+  background-image:
+    linear-gradient(rgba(120,160,255,.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(120,160,255,.055) 1px, transparent 1px);
+  background-size:38px 38px;
+}
+#bg{position:fixed; inset:0; overflow:hidden; z-index:0; pointer-events:none}
+.tok{position:absolute; top:0; font-family:'JetBrains Mono',monospace; font-weight:600; white-space:nowrap; animation:floatUp linear infinite}
+@keyframes floatUp{0%{transform:translateY(108vh) rotate(-7deg)}100%{transform:translateY(-14vh) rotate(7deg)}}
+
+header,main,.mission,footer{position:relative; z-index:1}
+
+/* ── шапка ── */
+header{max-width:1240px; margin:0 auto; padding:20px 20px 6px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap}
+.brand{display:flex; align-items:center; gap:14px}
+.badge{width:58px;height:58px;border-radius:16px;background:var(--yel);display:grid;place-items:center;font-size:30px;transform:rotate(-7deg);box-shadow:0 8px 20px -6px rgba(255,210,63,.5); transition:transform .25s}
+.badge:hover{transform:rotate(6deg) scale(1.06)}
+h1{font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(22px,3.4vw,34px);letter-spacing:.5px;line-height:1.05}
+h1 span{color:var(--yel)}
+.sub{font-family:'JetBrains Mono',monospace; font-size:11px; letter-spacing:3px; text-transform:uppercase; color:var(--dim); margin-top:4px}
+.hud{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
+.chip{background:#152544;border:1px solid #2c4370;border-radius:12px;padding:7px 12px;font-size:13px;display:flex;align-items:center;gap:7px;min-width:86px}
+.chip small{color:var(--dim); font-size:11px; text-transform:uppercase; letter-spacing:.6px}
+.chip b{font-family:'Unbounded',sans-serif;font-size:14px;color:#fff}
+.chip.hot b{color:var(--org); text-shadow:0 0 12px rgba(255,166,87,.8)}
+.btnchip{border:none;cursor:pointer;font-family:'Unbounded',sans-serif;font-weight:700;font-size:12px;border-radius:12px;padding:9px 14px;background:var(--yel);color:#241d00;box-shadow:0 5px 14px -4px rgba(255,210,63,.55);transition:transform .15s, box-shadow .15s}
+.btnchip:hover{transform:translateY(-2px); box-shadow:0 9px 20px -4px rgba(255,210,63,.7)}
+.btnchip:disabled{background:#3a4a6b;color:#9aa9c7;box-shadow:none;cursor:default;transform:none}
+.ghostchip{background:#152544;border:1px solid #2c4370;color:#fff}
+
+/* ── брифинг ── */
+.mission{max-width:1240px;margin:14px auto 6px;padding:0 20px}
+.file{background:#12213d;border:1px solid #2c4370;border-left:6px solid var(--yel);border-radius:14px;padding:14px 18px;box-shadow:0 14px 34px -20px #000}
+.file p{font-size:14.5px;line-height:1.55;max-width:900px}
+.file p b{color:var(--yel)}
+.file p em{color:var(--red);font-style:normal;font-weight:700}
+.file-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:11px}
+.rule{font-family:'JetBrains Mono',monospace;font-size:12px;background:#1c3157;border:1px solid #33507f;border-radius:999px;padding:5px 12px;color:#cfe0ff}
+.prog{display:flex;align-items:center;gap:10px;margin-left:auto;font-size:12.5px;color:var(--dim)}
+.bar{width:min(240px,42vw);height:9px;background:#1a2b4c;border-radius:99px;overflow:hidden;border:1px solid #2c4370}
+.bar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,var(--mint),var(--sky));border-radius:99px;transition:width .5s cubic-bezier(.2,.7,.3,1)}
+
+/* ── поле ── */
+main{max-width:1240px;margin:16px auto 0;padding:0 20px;display:grid;grid-template-columns:1fr 1.18fr;gap:24px}
+.col h2{font-family:'Unbounded',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:9px;margin-bottom:4px}
+.col h2 .cnt{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:11px;background:#1c3157;border-radius:99px;padding:3px 10px;color:var(--dim)}
+.col .hintline{font-size:12px;color:var(--dim);margin-bottom:12px}
+.cards{display:grid;gap:12px}
+#cardsLeft{grid-template-columns:repeat(auto-fill,minmax(232px,1fr))}
+#cardsRight{grid-template-columns:repeat(auto-fill,minmax(288px,1fr))}
+
+.card{
+  position:relative;background:linear-gradient(180deg,var(--card),var(--card2));
+  border:1.5px solid var(--line);border-radius:13px;cursor:pointer;user-select:none;
+  transition:transform .18s, border-color .18s, box-shadow .18s, opacity .3s;
+}
+.card:hover{transform:translateY(-3px);border-color:var(--sky);box-shadow:0 12px 26px -14px rgba(76,201,240,.5)}
+.card.deal{animation:dealUp .5s backwards; animation-delay:var(--d)}
+@keyframes dealUp{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.cbar{display:flex;align-items:center;gap:5px;padding:8px 10px 6px;border-bottom:1px dashed #2a3f68}
+.dot{width:8px;height:8px;border-radius:50%}
+.dot.r{background:#ff6b6b}.dot.y{background:#ffd23f}.dot.g{background:#3ddc97}
+.cnum{margin-left:auto;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:1.6px;text-transform:uppercase;color:var(--dim)}
+.card pre{margin:8px 11px 11px}
+.card code{font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.55;white-space:pre-wrap;color:#dce8ff}
+.t-k{color:#ff7b8a;font-weight:600}   /* if elif else */
+.t-l{color:var(--yel);font-weight:600} /* and or not True False */
+.t-s{color:#7ee787}                    /* строки */
+.t-f{color:#79c9ff}                    /* print */
+.t-c{color:var(--org)}                 /* == >= < */
+.t-n{color:#f2b950}                    /* числа */
+
+.card.sel{border-color:var(--yel);outline:2px dashed rgba(255,210,63,.55);outline-offset:3px;animation:selPulse 1.15s ease-in-out infinite}
+@keyframes selPulse{0%,100%{box-shadow:0 0 0 0 rgba(255,210,63,.35)}50%{box-shadow:0 0 22px 3px rgba(255,210,63,.28)}}
+.lens{position:absolute;top:-11px;right:-7px;font-size:22px;display:none;transform:rotate(14deg);filter:drop-shadow(0 3px 5px rgba(0,0,0,.5))}
+.card.sel .lens{display:block;animation:lensWig 1s ease-in-out infinite alternate}
+@keyframes lensWig{from{transform:rotate(6deg)}to{transform:rotate(20deg) translateY(-2px)}}
+
+.card.shake{animation:shake .45s;border-color:var(--red)!important}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-5px)}80%{transform:translateX(4px)}}
+
+.card.matched{border-color:var(--mint);pointer-events:none;background:linear-gradient(180deg,#11283c,#0e2030)}
+.card.matched code{opacity:.6}
+.stamp{position:absolute;top:7px;right:9px;font-family:'Unbounded',sans-serif;font-weight:700;font-size:10px;letter-spacing:.5px;padding:4px 9px;border-radius:7px;transform:rotate(-7deg);display:none}
+.card.matched .stamp{display:block;background:var(--mint);color:#06281c;animation:stampIn .4s cubic-bezier(.34,1.6,.64,1)}
+@keyframes stampIn{from{transform:rotate(-25deg) scale(2);opacity:0}to{transform:rotate(-7deg) scale(1);opacity:1}}
+.card.baited{border:1.5px dashed var(--red);opacity:.8;pointer-events:none}
+.card.baited code{opacity:.5}
+.card.baited .stamp{display:block;background:var(--red);color:#330a0a;animation:stampIn .4s cubic-bezier(.34,1.6,.64,1)}
+.card.flash{animation:flash 1s ease-in-out 2}
+@keyframes flash{0%,100%{box-shadow:none}50%{box-shadow:0 0 0 4px rgba(255,210,63,.65),0 0 26px rgba(255,210,63,.4)}}
+
+/* ── тост ── */
+#toast{position:fixed;left:50%;bottom:20px;transform:translate(-50%,24px);opacity:0;z-index:40;
+  width:min(620px,92vw);background:#16294b;border:2px solid var(--sky);border-radius:14px;
+  padding:11px 16px;font-size:14px;line-height:1.5;box-shadow:0 18px 40px -14px #000;
+  transition:transform .3s, opacity .3s;pointer-events:none}
+#toast.show{transform:translate(-50%,0);opacity:1}
+#toast.good{border-color:var(--mint)} #toast.bad{border-color:var(--red)} #toast.warn{border-color:var(--yel)}
+
+/* ── победа ── */
+.overlay{position:fixed;inset:0;background:rgba(6,13,26,.82);backdrop-filter:blur(4px);z-index:60;display:flex;align-items:center;justify-content:center;padding:20px}
+.overlay.hidden{display:none}
+.panel{background:linear-gradient(180deg,#182c50,#101d36);border:2px solid var(--yel);border-radius:20px;padding:30px 30px 26px;max-width:580px;width:100%;text-align:center;box-shadow:0 30px 80px -20px #000;animation:popIn .45s cubic-bezier(.3,1.4,.5,1)}
+@keyframes popIn{from{transform:scale(.8) translateY(24px);opacity:0}to{transform:none;opacity:1}}
+.panel h2{font-family:'Unbounded',sans-serif;font-weight:900;font-size:clamp(22px,4vw,30px);color:var(--yel)}
+.stars{font-size:44px;letter-spacing:10px;margin:14px 0 4px}
+.stars span{color:#31456f;display:inline-block}
+.stars span.on{color:var(--yel);text-shadow:0 0 18px rgba(255,210,63,.7);animation:starPop .5s cubic-bezier(.3,1.8,.5,1) backwards}
+@keyframes starPop{from{transform:scale(0) rotate(-40deg)}to{transform:scale(1) rotate(0)}}
+.rank{color:var(--sky);font-weight:700;margin-bottom:16px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.stat{background:#10203c;border:1px solid #2c4370;border-radius:12px;padding:9px 6px}
+.stat small{display:block;font-size:10.5px;text-transform:uppercase;letter-spacing:.8px;color:var(--dim);margin-bottom:3px}
+.stat b{font-family:'Unbounded',sans-serif;font-size:17px}
+.baitline{font-size:13px;color:var(--dim);margin-bottom:20px}
+.bigbtn{font-family:'Unbounded',sans-serif;font-weight:700;font-size:14px;background:var(--yel);color:#241d00;border:none;border-radius:13px;padding:14px 26px;cursor:pointer;box-shadow:0 8px 22px -6px rgba(255,210,63,.6);transition:transform .15s}
+.bigbtn:hover{transform:translateY(-3px) scale(1.03)}
+
+.cf{position:fixed;z-index:70;pointer-events:none;border-radius:2px}
+
+footer{text-align:center;color:var(--dim);font-size:12.5px;margin-top:30px;font-family:'JetBrains Mono',monospace}
+
+@media(max-width:980px){
+  main{grid-template-columns:1fr}
+  header{justify-content:center;text-align:center}
+}
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+</style>
+</head>
+<body>
+<div id="bg"></div>
+
+<header>
+  <div class="brand">
+    <div class="badge">🕵️</div>
+    <div>
+      <h1>Код-<span>Детектив</span></h1>
+      <div class="sub">операция «вложенный if»</div>
+    </div>
+  </div>
+  <div class="hud">
+    <div class="chip">🏆 <small>очки</small><b id="score">0</b></div>
+    <div class="chip">💥 <small>ошибки</small><b id="errors">0</b></div>
+    <div class="chip">⏱ <small>время</small><b id="time">00:00</b></div>
+    <div class="chip" id="streakChip">🔥 <small>серия</small><b id="streak">0</b></div>
+    <button class="btnchip" id="hintBtn">💡 Наводка ×3</button>
+    <button class="btnchip ghostchip" id="sndBtn" title="звук">🔊</button>
+  </div>
+</header>
+
+<section class="mission">
+  <div class="file">
+    <p>Юный сыщик! Злодей перепутал программы. Слева — улики с <b>вложенными if / elif</b>, справа — та же логика, записанная <b>одним составным условием</b>. Кликай карточку слева, затем её двойника справа. Собери <b>8 пар</b> — и дело закрыто. Осторожно: спрятаны <em>приманки — карточки без пары</em>!</p>
+    <div class="file-row">
+      <span class="rule">🪆 if внутри if ⇒ AND</span>
+      <span class="rule">🔁 if / elif с одним действием ⇒ OR</span>
+      <div class="prog">Найдено пар <b id="pairCount" style="color:#fff">0 / 8</b><div class="bar"><i id="progFill"></i></div></div>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="col">
+    <h2>🔍 Вложенные структуры <span class="cnt">10 улик</span></h2>
+    <div class="hintline">шаг 1 — выбери улику здесь</div>
+    <div class="cards" id="cardsLeft"></div>
+  </section>
+  <section class="col">
+    <h2>🧩 Составные условия <span class="cnt">12 улик</span></h2>
+    <div class="hintline">шаг 2 — найди двойника здесь</div>
+    <div class="cards" id="cardsRight"></div>
+  </section>
+</main>
+
+<footer>правило сыщика: сначала прочитай код, потом кликай 🔎</footer>
+
+<div id="toast"></div>
+
+<div class="overlay hidden" id="winOv">
+  <div class="panel">
+    <h2>🎉 ДЕЛО РАСКРЫТО!</h2>
+    <div class="stars" id="stars"><span>★</span><span>★</span><span>★</span></div>
+    <div class="rank" id="rank"></div>
+    <div class="stats">
+      <div class="stat"><small>время</small><b id="wTime"></b></div>
+      <div class="stat"><small>очки</small><b id="wScore"></b></div>
+      <div class="stat"><small>ошибки</small><b id="wErr"></b></div>
+      <div class="stat"><small>серия</small><b id="wStreak"></b></div>
+      <div class="stat"><small>приманки тронуты</small><b id="wBait"></b></div>
+    </div>
+    <div class="baitline">🪤 Без пары остались 6 приманок — так и было задумано. Ты раскусил(а) злодея!</div>
+    <button class="bigbtn" id="againBtn">🔄 Новое дело</button>
+  </div>
+</div>
+
+<script>
+/* ═══════════ ДАННЫЕ: 8 пар + приманки ═══════════ */
+const PAIRS=[
+{id:1,
+ left:['if age >= 12:','    if has_ticket:','        print("Проходите в кино!")'],
+ right:['if age >= 12 and has_ticket:','    print("Проходите в кино!")'],
+ note:'if внутри if означает AND: оба условия должны выполниться.'},
+{id:2,
+ left:['if weekend:','    print("Идём в парк!")','elif free_time:','    print("Идём в парк!")'],
+ right:['if weekend or free_time:','    print("Идём в парк!")'],
+ note:'Одинаковое действие в if и elif можно объединить одним OR.'},
+{id:3,
+ left:['if not rain:','    if not chores:','        print("Футбол во дворе!")'],
+ right:['if not (rain or chores):','    print("Футбол во дворе!")'],
+ note:'«не rain AND не chores» = «NOT (rain OR chores)». Это закон де Моргана!'},
+{id:4,
+ left:['if lvl >= 5:','    if sword:','        if not sleeping:','            print("Бой с драконом!")'],
+ right:['if lvl >= 5 and sword and not sleeping:','    print("Бой с драконом!")'],
+ note:'Три if друг в друге превращаются в цепочку из двух AND.'},
+{id:5,
+ left:['if day == "пятница":','    print("День пиццы!")','elif day == "суббота":','    print("День пиццы!")','elif day == "воскресенье":','    print("День пиццы!")'],
+ right:['if day == "пятница" or day == "суббота" or day == "воскресенье":','    print("День пиццы!")'],
+ note:'Три elif с одинаковым действием — это один большой OR.'},
+{id:6,
+ left:['if password_ok:','    if not blocked:','        print("Доступ открыт")'],
+ right:['if password_ok and not blocked:','    print("Доступ открыт")'],
+ note:'AND дружит с NOT: верный пароль AND аккаунт не заблокирован.'},
+{id:7,
+ left:['if temp > 20:','    if temp < 30:','        print("Идеальная погода")'],
+ right:['if temp > 20 and temp < 30:','    print("Идеальная погода")'],
+ note:'Два if об одной переменной задают диапазон: больше 20 AND меньше 30.'},
+{id:8,
+ left:['if mark == 5:','    print("Мороженое!")','elif mark == 4:','    print("Мороженое!")'],
+ right:['if mark == 5 or mark == 4:','    print("Мороженое!")'],
+ note:'Пятёрка OR четвёрка — в обоих случае мороженое!'}
+];
+const TRAPS_L=[
+{lines:['if weekend:','    print("Идём в парк!")','else:','    print("Идём в парк!")'],
+ note:'else печатает то же самое ВСЕГДА, когда не weekend. Это не OR!'},
+{lines:['if password_ok:','    print("Доступ открыт")','if not blocked:','    print("Доступ открыт")'],
+ note:'Два независимых if — не вложение! AND из них не получится (а напечататься может дважды).'}
+];
+const TRAPS_R=[
+{lines:['if age >= 12 or has_ticket:','    print("Проходите в кино!")'],
+ note:'С OR в кино прошёл бы даже малыш с билетом. Ловушка!'},
+{lines:['if not (rain and chores):','    print("Футбол во дворе!")'],
+ note:'NOT (rain AND chores) отпустит на футбол даже с делами — лишь бы без дождя. Не то!'},
+{lines:['if mark == 5 and mark == 4:','    print("Мороженое!")'],
+ note:'Переменная не может быть 5 AND 4 одновременно. Мороженого не будет никогда!'},
+{lines:['if day == "пятница" or day == "суббота" or day == "понедельник":','    print("День пиццы!")'],
+ note:'Понедельник?! Внимательнее: в настоящей паре было воскресенье.'}
+];
+
+/* ═══════════ подсветка синтаксиса ═══════════ */
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function hl(raw){
+  const rx=/("[^"]*")|\b(if|elif|else)\b|\b(and|or|not|True|False)\b|\b(print)\b|(==|!=|<=|>=|<|>)|(\d+)/g;
+  let out='',last=0,m;
+  while((m=rx.exec(raw))){
+    out+=esc(raw.slice(last,m.index));
+    const cls=m[1]?'t-s':m[2]?'t-k':m[3]?'t-l':m[4]?'t-f':m[5]?'t-c':'t-n';
+    out+='<span class="'+cls+'">'+esc(m[0])+'</span>';
+    last=rx.lastIndex;
+  }
+  return out+esc(raw.slice(last));
+}
+
+/* ═══════════ звук ═══════════ */
+let actx=null, soundOn=true;
+function beep(f,d=0.09,type='triangle',g=0.045,t=0){
+  if(!soundOn) return;
+  try{
+    actx=actx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),v=actx.createGain();
+    o.type=type;o.frequency.value=f;o.connect(v);v.connect(actx.destination);
+    const T=actx.currentTime+t;
+    o.start(T);v.gain.setValueAtTime(g,T);v.gain.exponentialRampToValueAtTime(.0001,T+d);o.stop(T+d+.03);
+  }catch(e){}
+}
+const SND={
+  sel:()=>beep(620,.06,'square',.03),
+  good:()=>{beep(523,.1);beep(659,.1,'triangle',.045,.09);beep(784,.14,'triangle',.045,.18)},
+  bad:()=>beep(150,.22,'sawtooth',.05),
+  win:()=>{[523,659,784,1046,1318].forEach((f,i)=>beep(f,.16,'triangle',.05,i*.13))}
+};
+
+/* ═══════════ состояние ═══════════ */
+const $=s=>document.querySelector(s);
+let score,mistakes,streak,maxStreak,matched,baitTries,seconds,timerInt,started,sel,hintsLeft;
+
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const fmt=t=>String(Math.floor(t/60)).padStart(2,'0')+':'+String(t%60).padStart(2,'0');
+
+function updateHUD(){
+  $('#score').textContent=score; $('#errors').textContent=mistakes;
+  $('#streak').textContent=streak; $('#pairCount').textContent=matched+' / 8';
+  $('#progFill').style.width=(matched/8*100)+'%';
+  $('#streakChip').classList.toggle('hot',streak>=2);
+}
+
+let toastTimer=null;
+function toast(msg,type='info',ms=4600){
+  const t=$('#toast'); t.className=''; t.classList.add('show',type); t.innerHTML=msg;
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),ms);
+}
+
+/* ═══════════ постройка дела ═══════════ */
+function makeCard(d,i,prefix){
+  const c=document.createElement('div');
+  c.className='card deal'; c.style.setProperty('--d',(i*45)+'ms');
+  c.dataset.side=d.side;
+  if(d.pair) c.dataset.pair=d.pair; else c.dataset.bait='1';
+  if(d.note) c.dataset.note=d.note;
+  c.dataset.cnum=prefix+(i+1);
+  c.tabIndex=0;
+  c.innerHTML='<div class="cbar"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span>'+
+    '<span class="cnum">улика №'+c.dataset.cnum+'</span></div>'+
+    '<pre><code>'+d.lines.map(hl).join('\n')+'</code></pre>'+
+    '<div class="stamp"></div><span class="lens">🔎</span>';
+  c.addEventListener('click',()=>onCard(c));
+  c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();onCard(c)}});
+  return c;
+}
+function buildGame(){
+  score=0;mistakes=0;streak=0;maxStreak=0;matched=0;baitTries=0;seconds=0;sel=null;hintsLeft=3;
+  clearInterval(timerInt); started=false;
+  $('#time').textContent='00:00';
+  $('#hintBtn').disabled=false; $('#hintBtn').textContent='💡 Наводка ×3';
+  const L=shuffle([...PAIRS.map(p=>({side:'L',pair:String(p.id),lines:p.left})),
+                   ...TRAPS_L.map(t=>({side:'L',lines:t.lines,note:t.note}))]);
+  const R=shuffle([...PAIRS.map(p=>({side:'R',pair:String(p.id),lines:p.right})),
+                   ...TRAPS_R.map(t=>({side:'R',lines:t.lines,note:t.note}))]);
+  const cl=$('#cardsLeft'), cr=$('#cardsRight'); cl.innerHTML=''; cr.innerHTML='';
+  L.forEach((d,i)=>cl.appendChild(makeCard(d,i,'А')));
+  R.forEach((d,i)=>cr.appendChild(makeCard(d,i,'Б')));
+  updateHUD();
+  toast('📂 Дело №'+(Math.floor(Math.random()*90)+10)+' открыто! Найди 8 пар одинаковых по смыслу программ.','info',5200);
+}
+
+function startTimer(){ started=true; timerInt=setInterval(()=>{seconds++; $('#time').textContent=fmt(seconds)},1000); }
+
+/* ═══════════ логика выбора ═══════════ */
+function onCard(card){
+  if(card.classList.contains('matched')||card.classList.contains('baited')) return;
+  if(!started) startTimer();
+  if(sel===card){ card.classList.remove('sel'); sel=null; return; }
+  if(!sel){ sel=card; card.classList.add('sel'); SND.sel(); return; }
+  if(sel.dataset.side===card.dataset.side){ sel.classList.remove('sel'); sel=card; card.classList.add('sel'); SND.sel(); return; }
+  const a=sel,b=card; sel=null; a.classList.remove('sel');
+  (a.dataset.pair && a.dataset.pair===b.dataset.pair) ? doMatch(a,b) : doMiss(a,b);
+}
+
+function doMatch(a,b){
+  matched++; streak++; maxStreak=Math.max(maxStreak,streak);
+  const bonus=(streak-1)*25; score+=100+bonus;
+  const id=a.dataset.pair;
+  const note=PAIRS.find(p=>String(p.id)===id).note;
+  [a,b].forEach(c=>{c.classList.add('matched'); c.querySelector('.stamp').textContent='✓ ПАРА №'+id;});
+  SND.good(); burst(a); burst(b);
+  toast('✅ <b>Пара №'+id+' найдена!</b> '+note+(bonus?' <br>🔥 Бонус за серию: +'+bonus+' очков!':''),'good',5600);
+  updateHUD();
+  if(matched===8) setTimeout(winFlow,900);
+}
+
+const MISS_HINTS=[
+ 'Хм… перечитай условия построчно. Они точно одинаковые?',
+ 'Сыщик, смотри на операторы: AND и OR ведут себя по-разному!',
+ 'Проверь знаки: &gt;= и &gt; — это разные улики.',
+ 'Действие в print() совпадает? А сами условия?',
+ 'if внутри if — это AND. if/elif с общим действием — это OR.'
+];
+function doMiss(a,b){
+  mistakes++; streak=0; score=Math.max(0,score-20);
+  [a,b].forEach(c=>{c.classList.add('shake'); setTimeout(()=>c.classList.remove('shake'),500)});
+  SND.bad();
+  const bait=(a.dataset.bait||b.dataset.bait)?(a.dataset.bait?a:b):null;
+  if(bait){ baitTries++; toast('🪤 <b>Это приманка!</b> У неё нет пары. '+bait.dataset.note,'bad',5600); }
+  else toast('❌ Не пара! '+MISS_HINTS[Math.floor(Math.random()*MISS_HINTS.length)],'bad');
+  updateHUD();
+}
+
+/* ═══════════ наводка ═══════════ */
+$('#hintBtn').addEventListener('click',()=>{
+  if(hintsLeft<=0||matched>=8) return;
+  const free=PAIRS.filter(p=>{
+    const cs=document.querySelectorAll('.card[data-pair="'+p.id+'"]');
+    return cs.length===2 && ![...cs].some(c=>c.classList.contains('matched'));
+  });
+  if(!free.length) return;
+  const p=free[Math.floor(Math.random()*free.length)];
+  hintsLeft--; score=Math.max(0,score-50);
+  $('#hintBtn').textContent='💡 Наводка ×'+hintsLeft;
+  if(hintsLeft===0) $('#hintBtn').disabled=true;
+  const cs=document.querySelectorAll('.card[data-pair="'+p.id+'"]');
+  cs.forEach(c=>{c.classList.add('flash'); setTimeout(()=>c.classList.remove('flash'),2300)});
+  const nums=[...cs].map(c=>'№'+c.dataset.cnum).join(' и ');
+  toast('💡 Наведка за 50 очков: присмотрись к уликам <b>'+nums+'</b>…','warn');
+  updateHUD();
+});
+
+/* ═══════════ победа ═══════════ */
+function winFlow(){
+  clearInterval(timerInt);
+  document.querySelectorAll('.card[data-bait]').forEach((c,i)=>{
+    setTimeout(()=>{c.querySelector('.stamp').textContent='🪤 ПРИМАНКА'; c.classList.add('baited'); SND.bad&&beep(240,.08,'square',.02);},i*160);
+  });
+  SND.win(); confettiRain();
+  setTimeout(()=>{
+    const stars=mistakes===0?3:mistakes<=3?2:1;
+    const spans=$('#stars').children;
+    [...spans].forEach((s,i)=>{s.className=''; if(i<stars){s.classList.add('on'); s.style.animationDelay=(0.2+i*0.25)+'s'}});
+    $('#rank').textContent=stars===3?'🏅 Шеф-детектив кода! Даже Шерлок аплодирует.':
+                           stars===2?'🎖 Отличная работа, сыщик! Почти безупречно.':
+                                     '🔍 Дело закрыто, но лупа тебе ещё пригодится.';
+    $('#wTime').textContent=fmt(seconds); $('#wScore').textContent=score;
+    $('#wErr').textContent=mistakes; $('#wStreak').textContent=maxStreak; $('#wBait').textContent=baitTries;
+    $('#winOv').classList.remove('hidden');
+  },1500);
+}
+$('#againBtn').addEventListener('click',()=>{$('#winOv').classList.add('hidden'); buildGame();});
+
+/* ═══════════ конфетти ═══════════ */
+const COLORS=['#ffd23f','#ff6b6b','#3ddc97','#4cc9f0','#ffa657','#ffffff'];
+function burst(el){
+  const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
+  for(let i=0;i<14;i++){
+    const p=document.createElement('span'); p.className='cf';
+    const s=5+Math.random()*5;
+    p.style.cssText='left:'+cx+'px;top:'+cy+'px;width:'+s+'px;height:'+s+'px;background:'+COLORS[Math.floor(Math.random()*COLORS.length)];
+    document.body.appendChild(p);
+    p.animate([{transform:'translate(0,0) rotate(0)',opacity:1},
+      {transform:'translate('+((Math.random()-.5)*200)+'px,'+(-30-Math.random()*130)+'px) rotate('+((Math.random()-.5)*520)+'deg)',opacity:0}],
+      {duration:650+Math.random()*500,easing:'cubic-bezier(.2,.6,.3,1)'}).onfinish=()=>p.remove();
+  }
+}
+function confettiRain(){
+  for(let i=0;i<90;i++){
+    const p=document.createElement('span'); p.className='cf';
+    const s=6+Math.random()*7;
+    p.style.cssText='left:'+(Math.random()*100)+'vw;top:-20px;width:'+s+'px;height:'+(s*1.4)+'px;background:'+COLORS[Math.floor(Math.random()*COLORS.length)];
+    document.body.appendChild(p);
+    p.animate([{transform:'translateY(0) rotate(0)',opacity:1},
+      {transform:'translateY(110vh) rotate('+((Math.random()-.5)*720)+'deg)',opacity:.7}],
+      {duration:2300+Math.random()*1900,delay:Math.random()*700,easing:'linear'}).onfinish=()=>p.remove();
+  }
+}
+
+/* ═══════════ живой фон ═══════════ */
+(function(){
+  const toks=['if','elif','else','and','or','not','==','!=','True',':','( )','>=','<=','print','#'];
+  const bg=$('#bg'), cols=['#4cc9f0','#ffd23f','#3ddc97','#ff6b6b','#ffa657'];
+  for(let i=0;i<16;i++){
+    const s=document.createElement('span'); s.className='tok';
+    s.textContent=toks[Math.floor(Math.random()*toks.length)];
+    s.style.left=(Math.random()*96)+'vw';
+    s.style.fontSize=(13+Math.random()*22)+'px';
+    s.style.color=cols[i%cols.length];
+    s.style.opacity=(.05+Math.random()*.08).toFixed(2);
+    s.style.animationDuration=(16+Math.random()*22)+'s';
+    s.style.animationDelay=(-Math.random()*30)+'s';
+    bg.appendChild(s);
+  }
+})();
+
+/* ═══════════ звук-тумблер + старт ═══════════ */
+$('#sndBtn').addEventListener('click',function(){soundOn=!soundOn; this.textContent=soundOn?'🔊':'🔇';});
+buildGame();
+</script>
+</body>
+</html>
