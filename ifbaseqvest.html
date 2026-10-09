@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IF-КВЕСТ — тренажёр условного оператора Python</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Rubik:wght@400;600;700;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0b1626; --panel:#132238; --line:#28466e;
+  --yellow:#ffd43b; --blue:#4b8bbe;
+  --green:#3ddc84; --red:#ff5d5d; --orange:#ffa63b;
+  --text:#eaf2ff; --dim:#8fa8c9;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Rubik',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+
+/* ВАЖНО: отключаем лигатуры моноширинного шрифта */
+.qcode,.opt-code,.terminal,.qfile,#tokens span{
+  font-variant-ligatures:none;
+  font-feature-settings:"liga" 0,"calt" 0;
+  text-rendering:optimizeSpeed;
+}
+
+/* ---------- фон ---------- */
+.bg-grid{position:fixed;inset:0;z-index:0;pointer-events:none;
+  background:
+    radial-gradient(620px 420px at 12% 6%, rgba(75,139,190,.20), transparent 62%),
+    radial-gradient(720px 520px at 90% 94%, rgba(255,212,59,.09), transparent 62%),
+    repeating-linear-gradient(0deg, rgba(75,139,190,.055) 0 1px, transparent 1px 44px),
+    repeating-linear-gradient(90deg, rgba(75,139,190,.055) 0 1px, transparent 1px 44px);}
+#tokens{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+#tokens span{position:absolute;bottom:-10vh;font-family:'JetBrains Mono',monospace;animation:floatUp linear infinite}
+@keyframes floatUp{to{transform:translateY(-118vh) rotate(8deg)}}
+#confetti{position:fixed;inset:0;z-index:50;pointer-events:none;overflow:hidden}
+.cf{position:absolute;top:-26px;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(114vh) rotate(720deg)}}
+
+/* ---------- общее ---------- */
+.screen{display:none;position:relative;z-index:2;min-height:100vh;padding:26px 16px 70px}
+.screen.active{display:block;animation:screenIn .45s cubic-bezier(.2,.8,.3,1)}
+@keyframes screenIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+.wrap{max-width:980px;margin:0 auto}
+.chip{display:inline-block;font-family:'Press Start 2P';font-size:9px;padding:8px 12px;border:2px solid;background:rgba(19,34,56,.85)}
+.chip-blue{color:#7fc0ff;border-color:#3a6ea8}
+.chip-yellow{color:var(--yellow);border-color:#8a7318}
+.chip-dim{color:var(--dim);border-color:var(--line)}
+.title{font-family:'Press Start 2P';font-size:clamp(26px,5.6vw,54px);color:var(--yellow);
+  text-shadow:0 6px 0 rgba(0,0,0,.45),0 0 34px rgba(255,212,59,.22);letter-spacing:2px;line-height:1.3;margin:14px 0 6px}
+.title-small{font-size:clamp(22px,4.5vw,40px)}
+.cursor{color:var(--blue);animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.subtitle{color:#bcdcff;font-size:clamp(14px,1.9vw,17px);max-width:640px;line-height:1.5}
+.block-title{font-family:'Press Start 2P';font-size:12px;color:#9fc2ef;margin-bottom:14px;letter-spacing:1px;line-height:1.6}
+
+/* ---------- меню ---------- */
+.menu-top{display:flex;gap:10px;flex-wrap:wrap}
+.terminal{margin:18px 0 4px;background:#0a1424;border:3px solid var(--line);border-left:8px solid var(--yellow);
+  padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:clamp(12px,1.6vw,15px);color:#9fe3a8;
+  box-shadow:6px 6px 0 rgba(0,0,0,.35);min-height:70px;line-height:1.7}
+.tcursor{animation:blink 1s steps(1) infinite;color:#9fe3a8}
+.menu-cols{display:grid;grid-template-columns:1.25fr .9fr;gap:26px;margin-top:24px;align-items:start}
+.levels{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:14px}
+.lvl{background:var(--panel);border:3px solid var(--line);box-shadow:6px 6px 0 rgba(0,0,0,.35);
+  padding:16px 14px;cursor:pointer;transition:transform .15s,box-shadow .15s,border-color .15s,background .15s;position:relative}
+.lvl:hover{transform:translate(-2px,-4px);box-shadow:9px 10px 0 rgba(0,0,0,.35)}
+.lvl.selected{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 11%,var(--panel))}
+.lvl.selected::after{content:'▶ ВЫБРАНО';position:absolute;top:-13px;right:10px;font-family:'Press Start 2P';
+  font-size:8px;background:var(--acc);color:#08101e;padding:5px 8px}
+.lvl-tag{font-family:'Press Start 2P';font-size:7px;color:var(--dim);letter-spacing:1px}
+.lvl-emoji{font-size:36px;display:block;margin:8px 0 4px;filter:drop-shadow(3px 3px 0 rgba(0,0,0,.4))}
+.lvl-name{font-family:'Press Start 2P';font-size:12px;margin:8px 0 8px;color:var(--acc);line-height:1.5}
+.lvl-desc{font-size:13px;color:var(--dim);line-height:1.5}
+.lvl-count{margin-top:12px;font-family:'Press Start 2P';font-size:8px;color:#5f7ba3}
+.times{display:grid;grid-template-columns:repeat(auto-fit, minmax(100px, 1fr));gap:10px}
+.time-btn{background:var(--panel);border:3px solid var(--line);box-shadow:4px 4px 0 rgba(0,0,0,.35);
+  color:var(--text);font-family:'Rubik',sans-serif;font-weight:700;font-size:15px;padding:13px 4px;cursor:pointer;transition:.15s}
+.time-btn small{display:block;font-family:'Press Start 2P';font-size:7px;color:var(--dim);margin-top:7px;letter-spacing:1px}
+.time-btn:hover{transform:translateY(-3px)}
+.time-btn.selected{border-color:var(--yellow);color:var(--yellow);background:rgba(255,212,59,.08)}
+.time-btn.selected small{color:#c8a92e}
+.hint{margin-top:14px;font-size:13px;color:var(--dim);border-left:4px solid var(--blue);padding:8px 12px;background:rgba(75,139,190,.08);line-height:1.55}
+.btn-start{font-family:'Press Start 2P';font-size:14px;background:var(--yellow);color:#181200;border:3px solid #0e0c02;
+  box-shadow:0 8px 0 #a17f14,0 14px 24px rgba(0,0,0,.4);padding:18px 26px;cursor:pointer;transition:.12s;width:100%;margin-top:18px;
+  animation:glowPulse 1.9s ease-in-out infinite}
+@keyframes glowPulse{0%,100%{filter:drop-shadow(0 0 0 rgba(255,212,59,0))}50%{filter:drop-shadow(0 0 18px rgba(255,212,59,.45))}}
+.btn-start:hover{transform:translateY(-3px)}
+.btn-start:active{transform:translateY(5px);box-shadow:0 2px 0 #a17f14}
+.ticker{position:fixed;left:0;right:0;bottom:0;z-index:3;background:#0e1c31;border-top:3px solid var(--line);overflow:hidden;padding:10px 0}
+.ticker-inner{display:inline-block;white-space:nowrap;font-family:'Press Start 2P';font-size:9px;color:#5f86b8;animation:tick 40s linear infinite}
+@keyframes tick{to{transform:translateX(-50%)}}
+
+/* ---------- игра ---------- */
+.hud{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.hud-cell{background:var(--panel);border:3px solid var(--line);box-shadow:5px 5px 0 rgba(0,0,0,.3);
+  padding:10px 16px;display:flex;flex-direction:column;gap:7px;justify-content:center}
+.hud-label{font-family:'Press Start 2P';font-size:8px;color:var(--dim);letter-spacing:1px}
+.hud-val{font-family:'Press Start 2P';font-size:12px;color:var(--yellow);line-height:1.5}
+.hud-center{flex:1;min-width:230px}
+.hud-right{text-align:right}
+.score-val{color:var(--green)}
+.pips{display:flex;gap:5px;flex-wrap:wrap}
+.pip{width:16px;height:16px;background:#0a1424;border:2px solid var(--line);transition:.2s}
+.pip.current{border-color:var(--yellow);animation:pipPulse 1s infinite}
+.pip.ok{background:var(--green);border-color:var(--green)}
+.pip.bad{background:var(--red);border-color:var(--red)}
+.pips-big{justify-content:center;margin-top:12px}
+.pips-big .pip{width:22px;height:22px}
+@keyframes pipPulse{50%{background:rgba(255,212,59,.35)}}
+.timer-row{display:flex;align-items:center;gap:14px;margin-bottom:16px}
+.timer-num{font-family:'Press Start 2P';font-size:26px;color:var(--green);min-width:62px;text-align:center;text-shadow:3px 3px 0 rgba(0,0,0,.4)}
+.timer-num.danger{color:var(--red);animation:shake .3s infinite}
+.timer-track{flex:1;height:18px;background:#0a1424;border:3px solid var(--line);box-shadow:inset 0 3px 0 rgba(0,0,0,.4)}
+.timer-fill{height:100%;width:100%;background:var(--green)}
+.timer-fill.warn{background:var(--yellow)}
+.timer-fill.danger{background:var(--red)}
+.stage{position:relative}
+.qcard{background:var(--panel);border:3px solid var(--line);box-shadow:8px 8px 0 rgba(0,0,0,.35);margin-bottom:16px}
+.qcard.in{animation:cardIn .4s cubic-bezier(.2,.9,.3,1.15)}
+.qcard.out{animation:cardOut .3s forwards}
+@keyframes cardIn{from{opacity:0;transform:translateX(60px) scale(.97)}to{opacity:1;transform:none}}
+@keyframes cardOut{to{opacity:0;transform:translateX(-60px) scale(.96)}}
+.qcard-head{display:flex;align-items:center;gap:7px;padding:10px 14px;background:#0e1c31;border-bottom:3px solid var(--line)}
+.dot{width:12px;height:12px;border-radius:50%}
+.dot.r{background:#ff5d5d}.dot.y{background:#ffd43b}.dot.g{background:#3ddc84}
+.qfile{margin-left:8px;font-family:'JetBrains Mono',monospace;font-size:12px;color:var(--dim)}
+.qcard-body{padding:18px}
+.qtext{font-size:clamp(16px,2.2vw,20px);font-weight:700;margin-bottom:14px;line-height:1.4}
+.qcode{display:none;background:#0a1220;border:2px solid #1d3350;border-left:6px solid var(--blue);
+  padding:14px 16px;font-family:'JetBrains Mono',monospace;font-size:clamp(14px,1.9vw,16.5px);
+  line-height:1.7;overflow-x:auto;white-space:pre;letter-spacing:.04em}
+.qcode.show{display:block}
+.c-kw{color:#ff9356;font-weight:700}.c-str{color:#7bd88f}.c-num{color:#ffd47a}.c-com{color:#5c7590}
+.opts{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;transition:opacity .35s}
+.opt{display:flex;align-items:center;gap:12px;background:var(--panel);border:3px solid var(--line);
+  box-shadow:5px 5px 0 rgba(0,0,0,.3);padding:13px 14px;cursor:pointer;text-align:left;color:var(--text);
+  font-family:'Rubik',sans-serif;font-size:15.5px;font-weight:600;transition:.13s;min-height:58px;line-height:1.4}
+.opt:hover:not(:disabled){transform:translate(-2px,-3px);border-color:var(--blue);box-shadow:8px 9px 0 rgba(0,0,0,.3)}
+.opt:disabled{cursor:default}
+.opt-n{font-family:'Press Start 2P';font-size:12px;background:#0a1424;border:2px solid var(--blue);color:#7fc0ff;
+  width:34px;height:34px;display:flex;align-items:center;justify-content:center;flex:none;transition:.13s}
+.opt:hover:not(:disabled) .opt-n{background:var(--blue);color:#fff}
+.opt-code{font-family:'JetBrains Mono',monospace;font-size:17px;font-weight:700;letter-spacing:.12em}
+.opt.opt-right{border-color:var(--green);background:rgba(61,220,132,.15)}
+.opt.opt-right .opt-n{background:var(--green);border-color:var(--green);color:#06220f}
+.opt.opt-wrong{border-color:var(--red);background:rgba(255,93,93,.14);animation:shake .3s}
+.opt.opt-wrong .opt-n{background:var(--red);border-color:var(--red);color:#2b0505}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+.dimmed{opacity:.18;pointer-events:none}
+.answer-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;background:var(--panel);
+  border:3px solid var(--line);box-shadow:5px 5px 0 rgba(0,0,0,.3);padding:14px;transition:opacity .35s}
+.answer-label{font-weight:700;font-size:15px;color:#bcdcff}
+#numInput{width:64px;height:56px;text-align:center;font-family:'Press Start 2P';font-size:22px;
+  background:#0a1424;border:3px solid var(--blue);color:var(--yellow);outline:none;transition:.15s}
+#numInput:focus{border-color:var(--yellow);box-shadow:0 0 0 4px rgba(255,212,59,.22)}
+.btn-ok{font-family:'Press Start 2P';font-size:11px;background:var(--blue);color:#fff;border:3px solid #173a5c;
+  box-shadow:0 6px 0 #1d4a75;padding:17px 20px;cursor:pointer;transition:.12s;margin-left:auto}
+.btn-ok:hover{transform:translateY(-2px)}
+.btn-ok:active{transform:translateY(4px);box-shadow:0 1px 0 #1d4a75}
+.stamp{position:absolute;left:50%;top:40%;transform:translate(-50%,-50%) rotate(-7deg);z-index:6;
+  font-family:'Press Start 2P';font-size:clamp(16px,3.2vw,28px);padding:16px 26px;border:5px solid;
+  pointer-events:none;white-space:nowrap}
+.stamp.hidden{display:none}
+.stamp.ok{color:#06220f;background:var(--green);border-color:#0e5c33;box-shadow:0 10px 0 rgba(0,0,0,.35);animation:stampIn .35s cubic-bezier(.2,1.6,.4,1)}
+.stamp.bad{color:#fff;background:var(--red);border-color:#7a1d1d;box-shadow:0 10px 0 rgba(0,0,0,.35);animation:stampIn .35s cubic-bezier(.2,1.6,.4,1)}
+.stamp.late{color:#241300;background:var(--orange);border-color:#7a4a08;box-shadow:0 10px 0 rgba(0,0,0,.35);animation:stampIn .35s cubic-bezier(.2,1.6,.4,1)}
+@keyframes stampIn{from{transform:translate(-50%,-50%) rotate(-7deg) scale(2.6);opacity:0}to{transform:translate(-50%,-50%) rotate(-7deg) scale(1);opacity:1}}
+
+/* ---------- результат ---------- */
+.result-hero{text-align:center;padding:14px 0 6px}
+.rank-banner{display:inline-block;font-family:'Press Start 2P';font-size:clamp(10px,1.9vw,15px);line-height:1.7;
+  color:#0b1020;background:var(--yellow);padding:14px 22px;border:3px solid #0e0c02;
+  box-shadow:6px 6px 0 rgba(0,0,0,.4);margin:14px 0;animation:rankPop .5s cubic-bezier(.2,1.5,.4,1)}
+@keyframes rankPop{from{transform:scale(.4) rotate(-5deg);opacity:0}to{transform:none;opacity:1}}
+.score-final{font-family:'Press Start 2P';font-size:clamp(30px,6vw,52px);color:var(--green);text-shadow:4px 4px 0 rgba(0,0,0,.4);margin:10px 0}
+.score-max{color:var(--dim);font-size:.55em}
+.final-msg{color:#bcdcff;font-size:15.5px;max-width:600px;margin:8px auto 4px;line-height:1.55}
+#mistakesWrap{margin-top:34px}
+.mistakes-sub{color:var(--dim);margin:-6px 0 16px;font-size:14.5px}
+.mistakes{display:grid;gap:16px}
+.err-card{background:var(--panel);border:3px solid var(--line);border-left:9px solid var(--red);
+  box-shadow:6px 6px 0 rgba(0,0,0,.3);padding:16px}
+.err-head{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.err-num{font-family:'Press Start 2P';font-size:10px;color:#9fc2ef}
+.err-badge{font-family:'Press Start 2P';font-size:8px;padding:6px 9px;background:rgba(255,93,93,.14);color:var(--red);border:2px solid var(--red)}
+.err-badge.tmo{color:var(--orange);border-color:var(--orange);background:rgba(255,166,59,.12)}
+.err-q{font-weight:700;margin-bottom:10px;font-size:15.5px;line-height:1.45}
+.err-card .qcode{margin-bottom:12px;font-size:14.5px}
+.err-answers{display:flex;gap:10px;flex-wrap:wrap;margin:6px 0}
+.ans-you,.ans-ok{padding:9px 13px;font-size:14px;border:2px solid;line-height:1.45}
+.ans-you{border-color:var(--red);color:#ffb3b3;background:rgba(255,93,93,.08)}
+.ans-ok{border-color:var(--green);color:#a8f0c8;background:rgba(61,220,132,.08)}
+.err-explain{margin-top:12px;background:rgba(255,212,59,.07);border:2px dashed rgba(255,212,59,.5);
+  padding:12px 14px;font-size:14.5px;line-height:1.6;color:#ffe9a8}
+.result-btns{display:flex;gap:14px;justify-content:center;margin-top:30px;flex-wrap:wrap}
+.result-btns .btn-start{width:auto;margin-top:0;animation:none}
+.btn-ghost{font-family:'Press Start 2P';font-size:12px;background:transparent;color:#9fc2ef;
+  border:3px solid var(--line);padding:17px 22px;cursor:pointer;transition:.15s}
+.btn-ghost:hover{border-color:var(--blue);color:#fff;transform:translateY(-3px)}
+
+#soundBtn{position:fixed;top:14px;right:14px;z-index:60;background:var(--panel);border:3px solid var(--line);
+  box-shadow:4px 4px 0 rgba(0,0,0,.35);font-size:18px;width:48px;height:48px;cursor:pointer;transition:.15s}
+#soundBtn:hover{transform:translateY(-2px)}
+
+@media(max-width:900px){.menu-cols{grid-template-columns:1fr}}
+@media(max-width:700px){
+  .opts{grid-template-columns:1fr}
+  .times{grid-template-columns:repeat(2,1fr)}
+  .timer-num{font-size:20px;min-width:46px}
+  .btn-ok{margin-left:0;width:100%}
+  .answer-row{justify-content:center;text-align:center}
+}
+</style>
+</head>
+<body>
+<div class="bg-grid"></div>
+<div id="tokens"></div>
+<div id="confetti"></div>
+<button id="soundBtn" title="Включить/выключить звук">🔊</button>
+
+<!-- ======== МЕНЮ ======== -->
+<section id="screen-menu" class="screen active">
+  <div class="wrap">
+    <div class="menu-top">
+      <div class="chip chip-blue">🐍 PYTHON-ТРЕНАЖЁР</div>
+      <div class="chip chip-dim">if • elif • else</div>
+    </div>
+    <h1 class="title">IF-КВЕСТ<span class="cursor">▮</span></h1>
+    <p class="subtitle">Охота за условным оператором: 10 вопросов, таймер тикает, ответы — цифрами от 1 до 4. Успеешь стать магистром?</p>
+    <div class="terminal"><code id="bootline"></code><span class="tcursor">▮</span></div>
+
+    <div class="menu-cols">
+      <div>
+        <h2 class="block-title">🎮 ВЫБЕРИ УРОВЕНЬ</h2>
+        <div id="levels" class="levels"></div>
+      </div>
+      <div>
+        <h2 class="block-title">⏱ ВРЕМЯ НА ВОПРОС</h2>
+        <div id="times" class="times"></div>
+        <div class="hint">💡 Клавиши <b>1–4</b> мгновенно выбирают ответ, <b>Enter</b> — подтвердить введённую цифру.</div>
+        <button id="startBtn" class="btn-start">▶ НАЧАТЬ ИГРУ</button>
+      </div>
+    </div>
+  </div>
+  <div class="ticker"><div class="ticker-inner" id="ticker"></div></div>
+</section>
+
+<!-- ======== ИГРА ======== -->
+<section id="screen-game" class="screen">
+  <div class="wrap">
+    <div class="hud">
+      <div class="hud-cell"><span class="hud-label">УРОВЕНЬ</span><span id="hudLevel" class="hud-val"></span></div>
+      <div class="hud-cell hud-center">
+        <span class="hud-label">ВОПРОС <span id="hudQNum">1</span>/10</span>
+        <div id="pips" class="pips"></div>
+      </div>
+      <div class="hud-cell hud-right"><span class="hud-label">ОЧКИ</span><span id="hudScore" class="hud-val score-val">0</span></div>
+    </div>
+    <div class="timer-row">
+      <div id="timerNum" class="timer-num">10</div>
+      <div class="timer-track"><div id="timerBar" class="timer-fill"></div></div>
+    </div>
+    <div class="stage">
+      <div id="qcard" class="qcard">
+        <div class="qcard-head"><span class="dot r"></span><span class="dot y"></span><span class="dot g"></span><span class="qfile" id="qfile">question_1.py</span></div>
+        <div class="qcard-body">
+          <div id="qtext" class="qtext"></div>
+          <pre id="qcode" class="qcode"></pre>
+        </div>
+      </div>
+      <div id="opts" class="opts"></div>
+      <div id="answer-row" class="answer-row">
+        <label class="answer-label" for="numInput">Введи номер ответа:</label>
+        <input id="numInput" type="text" inputmode="numeric" maxlength="1" autocomplete="off">
+        <button id="okBtn" class="btn-ok">ОТВЕТИТЬ ↵</button>
+      </div>
+      <div id="stamp" class="stamp hidden"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ======== РЕЗУЛЬТАТ ======== -->
+<section id="screen-result" class="screen">
+  <div class="wrap">
+    <div class="result-hero">
+      <div class="chip chip-yellow">🏁 ФИНИШ!</div>
+      <h1 class="title title-small">РЕЗУЛЬТАТ</h1>
+      <div><span id="rankBanner" class="rank-banner"></span></div>
+      <div class="score-final"><span id="finalScore">0</span><span class="score-max"> /100</span></div>
+      <div id="finalMsg" class="final-msg"></div>
+      <div id="resultPips" class="pips pips-big"></div>
+    </div>
+    <div id="mistakesWrap">
+      <h2 class="block-title">🛠 РАБОТА НАД ОШИБКАМИ</h2>
+      <p class="mistakes-sub" id="mistakesSub"></p>
+      <div id="mistakes" class="mistakes"></div>
+    </div>
+    <div class="result-btns">
+      <button id="againBtn" class="btn-start">🔁 ЕЩЁ РАЗ</button>
+      <button id="menuBtn" class="btn-ghost">🏠 В МЕНЮ</button>
+    </div>
+  </div>
+</section>
+
+<script>
+/* ================= ВОПРОСЫ ================= */
+const LEVELS=[
+{
+ name:'ПИТОН-МАЛЫШ', emoji:'🐣', accent:'#3ddc84', tag:'УРОВЕНЬ 1 • ЛЕГКО',
+ desc:'Основы: if и else, знаки сравнения.',
+ questions:[
+ {q:'Что выведет эта программа?',
+  code:`x = 10\nif x > 5:\n    print("Больше")\nelse:\n    print("Меньше")`,
+  options:['Больше','Меньше','Будет ошибка','Ничего не выведется'],correct:'Больше',
+  explain:'10 больше 5, значит условие x > 5 — True. Python выполняет код сразу после if и печатает «Больше».'},
+ {q:'Какой знак проверяет, равны ли два значения?',
+  options:['=','==','!=','=>'],correct:'==',
+  explain:'Одиночный = кладёт значение в переменную, а == сравнивает два значения и отвечает True или False.'},
+ {q:'Что выведет эта программа?',
+  code:`age = 12\nif age >= 14:\n    print("Привет, подросток!")\nelse:\n    print("Привет, школьник!")`,
+  options:['Привет, подросток!','Привет, школьник!','Оба приветствия','Будет ошибка'],correct:'Привет, школьник!',
+  explain:'12 меньше 14, поэтому условие age >= 14 — False, и срабатывает ветка else.'},
+ {q:'Что означает слово else?',
+  options:['«Если условие верно»','«Иначе, во всех остальных случаях»','«Повтори ещё раз»','«Останови программу»'],
+  correct:'«Иначе, во всех остальных случаях»',
+  explain:'else — запасной выход: его код выполняется, только если условие в if не сработало (оказалось False).'},
+ {q:'Что выведет эта программа?',
+  code:`score = 7\nif score == 7:\n    print("Семёрка!")`,
+  options:['Семёрка!','Ничего не выведется','Ошибка: нет else','7'],correct:'Семёрка!',
+  explain:'score равен 7, условие верное — печатается «Семёрка!». Писать else не обязательно: без него ничего страшного не случится.'},
+ {q:'Какой знак означает «не равно»?',
+  options:['==','<>','!=','=!'],correct:'!=',
+  explain:'!= читается как «не равно». Например, 5 != 3 даёт True: пятёрка ведь не равна тройке.'},
+ {q:'Что выведет эта программа?',
+  code:`a = 3\nb = 8\nif a > b:\n    print("A больше")\nelse:\n    print("B больше")`,
+  options:['A больше','B больше','Ничего не выведется','Будет ошибка'],correct:'B больше',
+  explain:'3 не больше 8 — условие ложное, поэтому срабатывает else и печатает «B больше».'},
+ {q:'Как правильно записать условие на Python?',
+  options:['if x > 3 then print("OK")','if x > 3: print("OK")','when x > 3 >> print("OK")','if (x > 3) do print("OK")'],
+  correct:'if x > 3: print("OK")',
+  explain:'В Python после условия ставится двоеточие :, а слово then не нужно. Отступ показывает, какой код выполняется при условии.'},
+ {q:'Что выведет эта программа?',
+  code:`hp = 0\nif hp > 0:\n    print("Жив")\nelse:\n    print("Игра окончена")`,
+  options:['Жив','Игра окончена','0','Будет ошибка'],correct:'Игра окончена',
+  explain:'0 не больше 0 (знак > — строго больше), условие False, поэтому срабатывает else.'},
+ {q:'Что означает знак >?',
+  options:['Больше или равно','Строго больше','Меньше','Присвоить значение'],correct:'Строго больше',
+  explain:'> — строго больше. «Больше или равно» записывается как >=.'}
+]},
+{
+ name:'КОДО-НИНДЗЯ', emoji:'🥷', accent:'#ffd43b', tag:'УРОВЕНЬ 2 • СРЕДНЕ',
+ desc:'Цепочки elif и операторы and, or, not.',
+ questions:[
+ {q:'Что прячется за словом elif?',
+  options:['else if — «иначе, если»','element if — «элемент»','delete if — «удалить»','Это просто опечатка'],
+  correct:'else if — «иначе, если»',
+  explain:'elif = else + if. Это дополнительная проверка, которая срабатывает, только если все проверки до неё не выполнились.'},
+ {q:'Что выведет эта программа?',
+  code:`points = 75\nif points >= 90:\n    print("Золото")\nelif points >= 60:\n    print("Серебро")\nelse:\n    print("Бронза")`,
+  options:['Золото','Серебро','Бронза','Всё сразу'],correct:'Серебро',
+  explain:'До 90 очков не хватает, зато 75 >= 60 — True, поэтому печатается «Серебро». До else дело не доходит.'},
+ {q:'Что выведет эта программа?',
+  code:`a = 5\nb = 3\nif a > 4 and b > 4:\n    print("Оба больше 4")\nelse:\n    print("Не оба")`,
+  options:['Оба больше 4','Не оба','Будет ошибка','Ничего не выведется'],correct:'Не оба',
+  explain:'and требует, чтобы ОБА условия были верны. a > 4 — True, но b > 4 — False (3 меньше 4). Всё условие — False.'},
+ {q:'Что выведет эта программа?',
+  code:`a = 5\nb = 3\nif a > 4 or b > 4:\n    print("Хотя бы один")\nelse:\n    print("Ни одного")`,
+  options:['Хотя бы один','Ни одного','Будет ошибка','Ничего не выведется'],correct:'Хотя бы один',
+  explain:'or достаточно хотя бы одного верного условия. a > 4 — True, и этого хватает.'},
+ {q:'Что выведет эта программа?',
+  code:`level = 3\nif level == 1:\n    print("Лес")\nelif level == 2:\n    print("Пещера")\nelif level == 3:\n    print("Замок")\nelse:\n    print("Финал")`,
+  options:['Лес','Пещера','Замок','Финал'],correct:'Замок',
+  explain:'Python проверяет условия по порядку: level не 1, не 2… а level == 3 — True! Печатается «Замок», остальное пропускается.'},
+ {q:'Что делает оператор not?',
+  options:['Переворачивает значение: True → False','Удаляет переменную','Запрещает условие','Повторяет проверку дважды'],
+  correct:'Переворачивает значение: True → False',
+  explain:'not меняет значение на противоположное: not True — это False, а not False — это True.'},
+ {q:'Что выведет эта программа?',
+  code:`x = 15\nif x > 10 and x < 20:\n    print("В диапазоне")\nelse:\n    print("Вне диапазона")`,
+  options:['В диапазоне','Вне диапазона','Будет ошибка','Ничего не выведется'],correct:'В диапазоне',
+  explain:'15 и больше 10, и меньше 20 — оба условия верны, а именно этого и хочет and.'},
+ {q:'Сколько веток elif может быть в одном условном операторе?',
+  options:['Сколько угодно','Только одна','Не больше двух','Ровно три'],correct:'Сколько угодно',
+  explain:'elif — это звенья цепочки проверок, их может быть много. А вот else бывает только один.'},
+ {q:'Что выведет эта программа?',
+  code:`key = False\nif not key:\n    print("Дверь заперта")\nelse:\n    print("Дверь открыта")`,
+  options:['Дверь заперта','Дверь открыта','Будет ошибка','False'],correct:'Дверь заперта',
+  explain:'not False превращается в True, поэтому выполняется код внутри if: ключа нет — дверь заперта.'},
+ {q:'Что выведет эта программа?',
+  code:`n = 12\nif n % 2 == 0:\n    print("Чётное")\nelse:\n    print("Нечётное")`,
+  options:['Чётное','Нечётное','12','Будет ошибка'],correct:'Чётное',
+  explain:'% — остаток от деления. 12 делится на 2 без остатка (остаток 0), значит число чётное.'}
+]},
+{
+ name:'МАГИСТР IF-ОВ', emoji:'🐲', accent:'#ff5d5d', tag:'УРОВЕНЬ 3 • ХАРДКОР',
+ desc:'Хитрые задачи, вложенные if и подвохи.',
+ questions:[
+ {q:'Что выведет эта программа?',
+  code:`x = 5\nprint("Да" if x > 3 else "Нет")`,
+  options:['Да','Нет','Будет ошибка: так писать нельзя','Ничего не выведется'],correct:'Да',
+  explain:'Это условие в одну строку: «значение, если True» if условие else «значение, если False». 5 > 3 — True, выбирается «Да».'},
+ {q:'Что выведет эта программа?',
+  code:`a = 7\nif a > 5:\n    if a > 10:\n        print("Огромное")\n    else:\n        print("Среднее")\nelse:\n    print("Маленькое")`,
+  options:['Огромное','Среднее','Маленькое','Будет ошибка'],correct:'Среднее',
+  explain:'Сначала a > 5 — True (7 > 5), заходим внутрь. Там a > 10 — False (7 меньше 10), поэтому срабатывает внутренний else: «Среднее».'},
+ {q:'Что выведет эта программа?',
+  code:`x = 0\nif x:\n    print("Истина")\nelse:\n    print("Ложь")`,
+  options:['Истина','Ложь','0','Будет ошибка'],correct:'Ложь',
+  explain:'Python считает число 0 «пустым» — оно работает как False. Любое другое число — как True.'},
+ {q:'Что выведет эта программа?',
+  code:`s = ""\nif s:\n    print("Непустая")\nelse:\n    print("Пустая")`,
+  options:['Непустая','Пустая','Будет ошибка','Ничего не выведется'],correct:'Пустая',
+  explain:'Пустая строка "" считается False. Если бы в строке был хотя бы один символ, она считалась бы True.'},
+ {q:'Что выведет эта программа?',
+  code:`x = 8\nif x > 5 or x > 100:\n    print("A")\nif x > 5 and x > 100:\n    print("B")`,
+  options:['Только A','Только B','A и B','Ничего не выведется'],correct:'Только A',
+  explain:'Первый if: 8 > 5 — True (or хватает одного), печатается A. Второй if: 8 > 100 — False, and недоволен, B не печатается. Два разных if проверяются независимо!'},
+ {q:'Что выведет эта программа?',
+  code:`a = 4\nb = 4\nif a == b:\n    print("Равны")\nelif a > b:\n    print("a больше")`,
+  options:['Равны','a больше','Ошибка: нет else','Ничего не выведется'],correct:'Равны',
+  explain:'a и b равны — первое условие True, печатается «Равны». Ошибки из-за отсутствия else не бывает: программа просто пойдёт дальше.'},
+ {q:'Что выведет эта программа?',
+  code:`n = 20\nif n % 2 == 0 and n % 5 == 0:\n    print("Делится на 2 и 5")\nelse:\n    print("Не делится")`,
+  options:['Делится на 2 и 5','Не делится','20','Будет ошибка'],correct:'Делится на 2 и 5',
+  explain:'20 делится и на 2, и на 5 без остатка — оба остатка равны 0, and доволен.'},
+ {q:'Что выведет эта программа?',
+  code:`x = 7\nif 5 < x < 10:\n    print("Между 5 и 10")\nelse:\n    print("Не между")`,
+  options:['Между 5 и 10','Не между','Будет ошибка: так нельзя','Ничего не выведется'],correct:'Между 5 и 10',
+  explain:'Python понимает цепочки сравнений прямо как в математике: 5 < 7 < 10 — True.'},
+ {q:'Что выведет эта программа?',
+  code:`score = 100\nif score == 100:\n    print("Рекорд!")\n    score = 0\nprint("Очков:", score)`,
+  options:['«Рекорд!» и «Очков: 0»','Только «Рекорд!»','Только «Очков: 0»','Будет ошибка'],
+  correct:'«Рекорд!» и «Очков: 0»',
+  explain:'Условие верно — печатается «Рекорд!» и score становится 0. Последняя строка без отступа: она не внутри if и выполняется всегда.'},
+ {q:'Что выведет эта программа?',
+  code:`a = 3\nif a == 3:\n    a = a + 10\nif a > 10:\n    print("Больше десяти")\nelse:\n    print("Не больше")`,
+  options:['Больше десяти','Не больше','Будет ошибка','Ничего не выведется'],correct:'Больше десяти',
+  explain:'Первый if меняет a: 3 + 10 = 13. Второй if проверяет уже новое значение: 13 > 10 — True.'}
+]}];
+
+/* 👇 ДОБАВЛЕН ВАРИАНТ 50 СЕКУНД 👇 */
+const TIME_OPTIONS=[
+ {s:5,e:'⚡',n:'МОЛНИЯ'},{s:10,e:'🎯',n:'СТАНДАРТ'},
+ {s:15,e:'🧠',n:'СПОКОЙНО'},{s:20,e:'🐢',n:'НЕ СПЕША'},
+ {s:50,e:'⏳',n:'МАКСИМУМ'}
+];
+
+/* ================= УТИЛИТЫ ================= */
+const $=s=>document.querySelector(s);
+const escapeHtml=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function hl(code){
+  const esc=code.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  return esc.replace(/("[^"]*")|(#[^\n]*)|\b(if|elif|else|and|or|not|True|False|print)\b|\b(\d+)\b/g,
+   (m,str,com,kw,num)=>{
+     if(str)return '<span class="c-str">'+str+'</span>';
+     if(com)return '<span class="c-com">'+com+'</span>';
+     if(kw)return '<span class="c-kw">'+kw+'</span>';
+     if(num!==undefined)return '<span class="c-num">'+num+'</span>';
+     return m;});
+}
+
+/* ================= ЗВУК ================= */
+let audioOn=true, actx=null;
+function tone(f,d,type='square',v=.12,delay=0){
+  if(!audioOn)return;
+  try{
+    if(!actx)actx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=actx.createOscillator(),g=actx.createGain(),t=actx.currentTime+delay;
+    o.type=type;o.frequency.value=f;
+    g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);
+    o.connect(g).connect(actx.destination);o.start(t);o.stop(t+d);
+  }catch(e){}
+}
+const SFX={
+  click(){tone(700,.05,'square',.07);},
+  correct(){tone(523,.09);tone(784,.12,'square',.12,.09);tone(1047,.18,'square',.12,.18);},
+  wrong(){tone(196,.18,'sawtooth',.13);tone(147,.26,'sawtooth',.11,.12);},
+  tick(){tone(880,.05,'square',.06);},
+  time(){tone(392,.12);tone(330,.12,'square',.12,.12);tone(262,.3,'square',.12,.24);},
+  start(){[440,554,659,880].forEach((f,i)=>tone(f,.09,'square',.1,i*.08));},
+  finish(){[523,659,784,1047].forEach((f,i)=>tone(f,.13,'square',.12,i*.11));}
+};
+$('#soundBtn').onclick=()=>{audioOn=!audioOn;$('#soundBtn').textContent=audioOn?'🔊':'🔇';if(audioOn)SFX.click();};
+
+/* ================= СОСТОЯНИЕ ================= */
+let selLevel=0, selTime=10;
+let game=null, current=null, timerHandle=null, lastSec=-1;
+
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  $(id).classList.add('active');
+  window.scrollTo({top:0});
+}
+
+/* ================= МЕНЮ ================= */
+function buildMenu(){
+  const lv=$('#levels');lv.innerHTML='';
+  LEVELS.forEach((L,i)=>{
+    const d=document.createElement('div');
+    d.className='lvl'+(i===selLevel?' selected':'');
+    d.style.setProperty('--acc',L.accent);
+    d.innerHTML=`<span class="lvl-tag">${L.tag}</span><span class="lvl-emoji">${L.emoji}</span>
+      <div class="lvl-name">${L.name}</div><div class="lvl-desc">${L.desc}</div>
+      <div class="lvl-count">🎯 10 ВОПРОСОВ</div>`;
+    d.onclick=()=>{selLevel=i;SFX.click();buildMenu();};
+    lv.appendChild(d);
+  });
+  const tm=$('#times');tm.innerHTML='';
+  TIME_OPTIONS.forEach(t=>{
+    const b=document.createElement('button');
+    b.className='time-btn'+(t.s===selTime?' selected':'');
+    b.innerHTML=`${t.e} ${t.s} сек<small>${t.n}</small>`;
+    b.onclick=()=>{selTime=t.s;SFX.click();buildMenu();};
+    tm.appendChild(b);
+  });
+}
+
+/* ================= ИГРА ================= */
+function startGame(){
+  game={levelIdx:selLevel,time:selTime,qi:0,score:0,results:[]};
+  const L=LEVELS[selLevel];
+  $('#hudLevel').textContent=L.emoji+' '+L.name;
+  $('#hudScore').textContent='0';
+  const p=$('#pips');p.innerHTML='';
+  for(let i=0;i<10;i++){const s=document.createElement('span');s.className='pip';p.appendChild(s);}
+  showScreen('#screen-game');
+  SFX.start();
+  setTimeout(()=>showQuestion(0),320);
+}
+
+function markCurrentPip(){
+  [...$('#pips').children].forEach((p,i)=>{
+    if(!p.classList.contains('ok')&&!p.classList.contains('bad'))
+      p.classList.toggle('current',i===game.qi);
+  });
+}
+
+function showQuestion(i){
+  const L=LEVELS[game.levelIdx], def=L.questions[i];
+  const opts=shuffle(def.options.map(t=>({t,ok:t===def.correct})));
+  current={def,opts,locked:false};
+  game.qi=i;
+  $('#hudQNum').textContent=i+1;
+  $('#qfile').textContent='question_'+(i+1)+'.py';
+  $('#qtext').textContent=def.q;
+  const qc=$('#qcode');
+  if(def.code){qc.innerHTML=hl(def.code);qc.classList.add('show');}
+  else{qc.classList.remove('show');qc.innerHTML='';}
+  const ow=$('#opts');ow.innerHTML='';ow.classList.remove('dimmed');
+  $('#answer-row').classList.remove('dimmed');
+  opts.forEach((o,idx)=>{
+    const b=document.createElement('button');
+    b.className='opt';
+    const codeLike=/[=():><!]|if /.test(o.t);
+    b.innerHTML=`<span class="opt-n">${idx+1}</span><span class="${codeLike?'opt-code':''}">${escapeHtml(o.t)}</span>`;
+    b.onclick=()=>submitAnswer(idx);
+    ow.appendChild(b);
+  });
+  const card=$('#qcard');
+  card.classList.remove('out','in');void card.offsetWidth;card.classList.add('in');
+  $('#stamp').classList.add('hidden');
+  const inp=$('#numInput');inp.value='';inp.disabled=false;
+  $('#okBtn').disabled=false;
+  markCurrentPip();
+  startTimer();
+  setTimeout(()=>inp.focus(),60);
+}
+
+function startTimer(){
+  stopTimer();lastSec=-1;
+  const bar=$('#timerBar'),num=$('#timerNum');
+  bar.style.width='100%';bar.classList.remove('warn','danger');
+  num.classList.remove('danger');num.textContent=game.time;
+  const total=game.time*1000,end=performance.now()+total;
+  timerHandle=setInterval(()=>{
+    const rem=Math.max(0,end-performance.now()),frac=rem/total;
+    bar.style.width=(frac*100)+'%';
+    bar.classList.toggle('warn',frac<=.5&&frac>.25);
+    bar.classList.toggle('danger',frac<=.25);
+    const sec=Math.ceil(rem/1000);
+    if(sec!==lastSec){
+      lastSec=sec;num.textContent=sec;
+      num.classList.toggle('danger',sec<=3);
+      if(sec<=3&&sec>=1&&rem>0)SFX.tick();
+    }
+    if(rem<=0){stopTimer();onTimeout();}
+  },80);
+}
+function stopTimer(){if(timerHandle){clearInterval(timerHandle);timerHandle=null;}}
+
+function showStamp(text,cls){
+  const s=$('#stamp');
+  s.textContent=text;
+  s.classList.remove('hidden','ok','bad','late');
+  s.style.animation='none';void s.offsetWidth;s.style.animation='';
+  s.classList.add(cls);
+}
+
+function submitAnswer(idx){
+  if(!current||current.locked)return;
+  if(idx<0||idx>3||isNaN(idx))return;
+  current.locked=true;stopTimer();
+  const btns=[...document.querySelectorAll('#opts .opt')];
+  btns.forEach(b=>b.disabled=true);
+  const ok=current.opts[idx].ok;
+  btns[idx].classList.add(ok?'opt-right':'opt-wrong');
+  if(!ok)btns[current.opts.findIndex(o=>o.ok)].classList.add('opt-right');
+  game.results.push({qIndex:game.qi,ansIdx:idx,ansText:current.opts[idx].t,ok,timeout:false});
+  $('#numInput').disabled=true;$('#okBtn').disabled=true;
+  if(ok){
+    game.score+=10;$('#hudScore').textContent=game.score;
+    $('#pips').children[game.qi].className='pip ok';
+    SFX.correct();showStamp('ВЕРНО! +10','ok');
+  }else{
+    $('#pips').children[game.qi].className='pip bad';
+    SFX.wrong();showStamp('МИМО!','bad');
+  }
+  setTimeout(()=>{ $('#qcard').classList.add('out');
+    $('#opts').classList.add('dimmed');$('#answer-row').classList.add('dimmed'); },700);
+  setTimeout(nextStep,1150);
+}
+
+function onTimeout(){
+  if(!current||current.locked)return;
+  current.locked=true;
+  const btns=[...document.querySelectorAll('#opts .opt')];
+  btns.forEach(b=>b.disabled=true);
+  btns[current.opts.findIndex(o=>o.ok)].classList.add('opt-right');
+  game.results.push({qIndex:game.qi,ansIdx:-1,ansText:null,ok:false,timeout:true});
+  $('#pips').children[game.qi].className='pip bad';
+  $('#numInput').disabled=true;$('#okBtn').disabled=true;
+  SFX.time();showStamp('⏰ ВРЕМЯ ВЫШЛО!','late');
+  setTimeout(()=>{ $('#qcard').classList.add('out');
+    $('#opts').classList.add('dimmed');$('#answer-row').classList.add('dimmed'); },800);
+  setTimeout(nextStep,1250);
+}
+
+function nextStep(){ if(game.qi+1<10)showQuestion(game.qi+1); else finishGame(); }
+
+/* ================= РЕЗУЛЬТАТ ================= */
+function finishGame(){
+  stopTimer();
+  const correct=game.results.filter(r=>r.ok).length;
+  const L=LEVELS[game.levelIdx];
+  let rank,msg;
+  if(correct===10){rank='🏆 НЕПОБЕДИМЫЙ МАГИСТР IF-ОВ';msg='Идеально! Ни единой ошибки — Python тебя уважает!';}
+  else if(correct>=8){rank='🥇 КОДОВЫЙ ЧЕМПИОН';msg='Отличный результат! Ещё чуть-чуть — и будет идеал.';}
+  else if(correct>=6){rank='🥈 УВЕРЕННЫЙ НИНДЗЯ';msg='Хорошо! Загляни в разбор ошибок ниже и стань ещё сильнее.';}
+  else if(correct>=4){rank='🥉 СМЕЛЫЙ УЧЕНИК';msg='Неплохое начало! Разбери ошибки и попробуй снова.';}
+  else{rank='🐣 НОВИЧОК-ПИТОНЧИК';msg='Не сдавайся! Прочитай объяснения и вернись за реваншем!';}
+  $('#rankBanner').textContent=rank;
+  $('#finalMsg').textContent=`Уровень «${L.name}» • ${game.time} сек на вопрос • Правильных ответов: ${correct} из 10. ${msg}`;
+  const rp=$('#resultPips');rp.innerHTML='';
+  game.results.forEach(r=>{
+    const s=document.createElement('span');
+    s.className='pip '+(r.ok?'ok':'bad');
+    s.title=r.ok?'Верно':(r.timeout?'Не успел':'Ошибка');
+    rp.appendChild(s);
+  });
+  const wrong=game.results.filter(r=>!r.ok);
+  const wrap=$('#mistakesWrap'),list=$('#mistakes');
+  list.innerHTML='';
+  if(wrong.length===0){wrap.style.display='none';}
+  else{
+    wrap.style.display='block';
+    $('#mistakesSub').textContent=`Не получилось ${wrong.length} из 10 — вот что нужно запомнить:`;
+    wrong.forEach(r=>{
+      const def=L.questions[r.qIndex];
+      const card=document.createElement('div');card.className='err-card';
+      const badge=r.timeout?'<span class="err-badge tmo">⏰ НЕ УСПЕЛ ОТВЕТИТЬ</span>':'<span class="err-badge">✗ ОШИБКА</span>';
+      const your=r.timeout
+        ?'<div class="ans-you">Твой ответ: — (время вышло)</div>'
+        :`<div class="ans-you">Твой ответ: ${escapeHtml(r.ansText)}</div>`;
+      card.innerHTML=`
+        <div class="err-head"><span class="err-num">ВОПРОС ${r.qIndex+1}</span>${badge}</div>
+        <div class="err-q">${escapeHtml(def.q)}</div>
+        ${def.code?`<pre class="qcode show">${hl(def.code)}</pre>`:''}
+        <div class="err-answers">${your}<div class="ans-ok">Правильно: ${escapeHtml(def.correct)}</div></div>
+        <div class="err-explain">💡 ${escapeHtml(def.explain)}</div>`;
+      list.appendChild(card);
+    });
+  }
+  showScreen('#screen-result');
+  SFX.finish();
+  countUp($('#finalScore'),game.score,1000);
+  if(correct>=8)setTimeout(()=>confetti(150),350);
+}
+
+function countUp(el,to,dur){
+  const t0=performance.now();
+  (function f(){const p=Math.min(1,(performance.now()-t0)/dur);
+    el.textContent=Math.round(to*p);if(p<1)requestAnimationFrame(f);})();
+}
+function confetti(n){
+  const box=$('#confetti'),colors=['#ffd43b','#4b8bbe','#3ddc84','#ff5d5d','#ffa63b','#ffffff'];
+  for(let i=0;i<n;i++){
+    const d=document.createElement('div');d.className='cf';
+    d.style.left=Math.random()*100+'vw';
+    d.style.background=colors[i%colors.length];
+    d.style.width=(6+Math.random()*8)+'px';
+    d.style.height=(8+Math.random()*10)+'px';
+    d.style.animationDuration=(2.4+Math.random()*2)+'s';
+    d.style.animationDelay=(Math.random()*.7)+'s';
+    box.appendChild(d);setTimeout(()=>d.remove(),5600);
+  }
+}
+
+/* ================= ВВОД ================= */
+$('#startBtn').onclick=()=>startGame();
+$('#againBtn').onclick=()=>startGame();
+$('#menuBtn').onclick=()=>showScreen('#screen-menu');
+$('#okBtn').onclick=()=>{const v=parseInt($('#numInput').value,10);if(v>=1&&v<=4)submitAnswer(v-1);};
+$('#numInput').addEventListener('input',e=>{
+  e.target.value=e.target.value.replace(/[^1-4]/g,'').slice(0,1);
+});
+document.addEventListener('keydown',e=>{
+  const active=document.querySelector('.screen.active').id;
+  if(active==='screen-menu'){if(e.key==='Enter')startGame();return;}
+  if(active==='screen-game'){
+    if(e.key>='1'&&e.key<='4'){e.preventDefault();submitAnswer(+e.key-1);}
+    else if(e.key==='Enter'){e.preventDefault();
+      const v=parseInt($('#numInput').value,10);
+      if(v>=1&&v<=4)submitAnswer(v-1);}
+  }
+});
+
+/* ================= ДЕКОР ================= */
+function spawnTokens(){
+  const words=['if','else','elif','==','!=','True','False','and','or','not','print()','>>>','🐍',':','>=','<='];
+  const c=$('#tokens');
+  for(let i=0;i<18;i++){
+    const s=document.createElement('span');
+    s.textContent=words[Math.floor(Math.random()*words.length)];
+    s.style.left=Math.random()*100+'vw';
+    s.style.fontSize=(11+Math.random()*18)+'px';
+    s.style.opacity=(.05+Math.random()*.1).toFixed(2);
+    s.style.color=Math.random()<.3?'#ffd43b':'#4b8bbe';
+    const d=16+Math.random()*22;
+    s.style.animationDuration=d+'s';
+    s.style.animationDelay=(-Math.random()*d)+'s';
+    c.appendChild(s);
+  }
+}
+function typeBoot(){
+  const lines=['>>> import приключение','>>> if готов: начать_игру()'];
+  const el=$('#bootline');let li=0,ci=0;
+  (function step(){
+    if(li>=lines.length)return;
+    ci++;
+    const done=lines.slice(0,li).map(escapeHtml).join('<br>');
+    el.innerHTML=(done?done+'<br>':'')+escapeHtml(lines[li].slice(0,ci));
+    if(ci>=lines[li].length){li++;ci=0;setTimeout(step,280);}
+    else setTimeout(step,26);
+  })();
+}
+const TICK='if — «если»  •  else — «иначе»  •  elif — «иначе если»  •  == сравнивает  •  = присваивает  •  and — И  •  or — ИЛИ  •  not — НЕ  •  двоеточие : обязательно  •  отступы решают всё  •  🐍  ';
+$('#ticker').textContent=TICK.repeat(4);
+
+spawnTokens();typeBoot();buildMenu();
+</script>
+</body>
+</html>
